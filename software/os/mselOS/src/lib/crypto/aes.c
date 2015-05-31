@@ -33,6 +33,31 @@ void aes_setkey(aes_ctx_t *ctx, aes_algo_t algo, void *key) {
   ctx->key = (uint8_t *)key;
 }
 
+/** @general crypter with AES
+ *
+ *  @param ctx Pointer to a valid AES context with a set key
+ *  @param data_in The data to be encrypted
+ *  @param data_out The resulting encrypted data
+ *  @param encoding variable to toggle whether encrypting or decrypting
+ *     since encrypt/decrypt are the same code with just differing toggles
+ */
+static void aes_ecb_crypter(aes_ctx_t *ctx, void *data_in,
+			      void *data_out, const uint8_t is_encrypting) {
+  aes_driver_ctx_t driver_ctx;
+
+  if (is_encrypting)
+    driver_ctx.enc = 1;
+  else
+    driver_ctx.enc = 0;
+
+  driver_ctx.key_size = ctx->algo;
+  driver_ctx.key = ctx->key;
+  driver_ctx.data_len = 16;
+  driver_ctx.din = data_in;
+  driver_ctx.dout = data_out;
+  msel_svc(MSEL_SVC_AES, &driver_ctx);
+}
+
 /** @brief Encrypt data with AES
  *
  *  @param ctx Pointer to a valid AES context with a set key
@@ -40,14 +65,7 @@ void aes_setkey(aes_ctx_t *ctx, aes_algo_t algo, void *key) {
  *  @param data_out The resulting encrypted data
  */
 void aes_ecb_encrypt(aes_ctx_t *ctx, void *data_in, void *data_out) {
-  aes_driver_ctx_t driver_ctx;
-  driver_ctx.enc = 1;
-  driver_ctx.key_size = ctx->algo;
-  driver_ctx.key = ctx->key;
-  driver_ctx.data_len = 16;
-  driver_ctx.din = data_in;
-  driver_ctx.dout = data_out;
-  msel_svc(MSEL_SVC_AES, &driver_ctx);
+  aes_ecb_crypter(ctx, data_in, data_out, 1);
 }
 
 /** @brief Decrypt data with AES
@@ -57,12 +75,5 @@ void aes_ecb_encrypt(aes_ctx_t *ctx, void *data_in, void *data_out) {
  *  @param data_out The resulting unencrypted data
  */
 void aes_ecb_decrypt(aes_ctx_t *ctx, void *data_in, void *data_out) {
-  aes_driver_ctx_t driver_ctx;
-  driver_ctx.enc = 0;
-  driver_ctx.key_size = ctx->algo;
-  driver_ctx.key = ctx->key;
-  driver_ctx.data_len = 16;
-  driver_ctx.din = data_in;
-  driver_ctx.dout = data_out;
-  msel_svc(MSEL_SVC_AES, &driver_ctx);
+  aes_ecb_crypter(ctx, data_in, data_out, 0);
 }
